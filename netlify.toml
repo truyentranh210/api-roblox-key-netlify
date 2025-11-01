@@ -2,13 +2,21 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/roblox"
-  to = "/.netlify/functions/roblox"
-  status = 200
-  force = true
-
-[[redirects]]
   from = "/key"
   to = "/.netlify/functions/key"
   status = 200
-  force = true
+
+[[redirects]]
+  from = "/roblox"
+  to = "/.netlify/functions/roblox"
+  status = 200
+
+[[redirects]]
+  from = "/home"
+  to = "/.netlify/functions/home"
+  status = 200
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/home"
+  status = 200
