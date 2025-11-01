@@ -1,0 +1,14 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/roblox"
+  to = "/.netlify/functions/roblox"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/key"
+  to = "/.netlify/functions/key"
+  status = 200
+  force = true
