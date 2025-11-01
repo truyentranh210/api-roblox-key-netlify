@@ -1,89 +1,68 @@
 // netlify/functions/home.js
-// Hiển thị hướng dẫn sử dụng API (HTML đẹp mắt)
+// GET /home (JSON hướng dẫn sử dụng API)
 
 exports.handler = async () => {
-  const html = `
-  <html lang="vi">
-    <head>
-      <meta charset="UTF-8" />
-      <title>Roblox API - Hướng dẫn sử dụng</title>
-      <style>
-        body {
-          background: #0d1117;
-          color: #e6edf3;
-          font-family: 'Segoe UI', sans-serif;
-          padding: 40px;
-          line-height: 1.6;
+  const data = {
+    name: "Roblox Info API",
+    author: "Bạn",
+    version: "v1.0.0",
+    description: "API hiển thị thông tin người chơi Roblox và sinh key 24h. Triển khai trên Netlify.",
+    endpoints: [
+      {
+        path: "/key",
+        method: "GET",
+        purpose: "Tạo key ngẫu nhiên có hiệu lực trong 24 giờ.",
+        example: "/key",
+        response_example: {
+          key: "eyJpYXQiOjE3MzA0Mjg5NjIsImV4cCI6MTczMDUxNTM2Miwicm5kIjoiZDQ3Zj...g",
+          expires_at: "2025-11-02T00:00:00Z"
         }
-        h1, h2 { color: #58a6ff; }
-        code {
-          background: #161b22;
-          padding: 3px 6px;
-          border-radius: 4px;
-          color: #ffa657;
+      },
+      {
+        path: "/roblox?username=<tên_người_chơi>",
+        method: "GET",
+        purpose: "Trả thông tin người chơi Roblox, bao gồm tên, mô tả, bạn bè, nhóm, và trang phục đang mặc.",
+        example: "/roblox?username=MinhlosVipp",
+        response_example: {
+          Name: "MinhlosVipp",
+          Username: "OsbornLauren5",
+          ID: "7559629944",
+          Friends: 23,
+          Followers: 0,
+          GroupsCount: 0,
+          WearingCount: 2,
+          Wearing: [
+            {
+              name: "Cool Black Jacket",
+              type: "Shirt",
+              imageUrl: "https://tr.rbxcdn.com/example1.png"
+            },
+            {
+              name: "Blue Jeans",
+              type: "Pants",
+              imageUrl: "https://tr.rbxcdn.com/example2.png"
+            }
+          ]
         }
-        .block {
-          background: #161b22;
-          padding: 15px 20px;
-          border-radius: 10px;
-          margin-top: 10px;
-        }
-        a { color: #79c0ff; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-      </style>
-    </head>
-    <body>
-      <h1>🧠 Roblox Info API (Netlify)</h1>
-      <p>Dưới đây là hướng dẫn sử dụng toàn bộ endpoint API của bạn.</p>
-
-      <div class="block">
-        <h2>1️⃣ /key</h2>
-        <p><b>Chức năng:</b> Tạo key ngẫu nhiên có hiệu lực trong 24 giờ.</p>
-        <p><b>Ví dụ:</b> <code>/key</code></p>
-        <p><b>Kết quả:</b></p>
-        <pre>{
-  "key": "eyJpYXQiOjE3MzA0Mj...",
-  "expires_at": "2025-11-02T00:00:00Z"
-}</pre>
-      </div>
-
-      <div class="block">
-        <h2>2️⃣ /roblox?username=&lt;tên người chơi&gt;</h2>
-        <p><b>Chức năng:</b> Tra thông tin người chơi Roblox (mô tả, bạn bè, nhóm, trang phục đang mặc).</p>
-        <p><b>Ví dụ:</b> <code>/roblox?username=MinhlosVipp</code></p>
-        <p><b>Kết quả mẫu:</b></p>
-        <pre>{
-  "Name": "MinhlosVipp",
-  "Username": "OsbornLauren5",
-  "ID": "7559629944",
-  "Friends": 23,
-  "Followers": 0,
-  "GroupsCount": 0,
-  "Wearing": [
-    {
-      "name": "Cool Black Jacket",
-      "type": "Shirt",
-      "imageUrl": "https://tr.rbxcdn.com/xxx150x150.png"
-    }
-  ]
-}</pre>
-      </div>
-
-      <div class="block">
-        <h2>3️⃣ /home hoặc /</h2>
-        <p>Trang hiện tại — hiển thị hướng dẫn chi tiết về API.</p>
-      </div>
-
-      <br/>
-      <p>💡 <b>Mẹo:</b> Bạn có thể triển khai API này miễn phí trên <a href="https://www.netlify.com" target="_blank">Netlify</a> và dùng cho project web hoặc bot Discord!</p>
-      <p>© 2025 Roblox API by <b>Bạn</b> 💙</p>
-    </body>
-  </html>
-  `;
+      },
+      {
+        path: "/home",
+        method: "GET",
+        purpose: "Trả hướng dẫn sử dụng toàn bộ API dưới dạng JSON.",
+        example: "/home"
+      }
+    ],
+    usage: {
+      base_url: "https://<tên_site>.netlify.app",
+      note: "Bạn có thể thay <tên_site> bằng domain Netlify của mình, ví dụ: https://rbx-api-v1.netlify.app",
+      tip: "Có thể dùng cho bot Discord, web app hoặc script để lấy thông tin Roblox dễ dàng."
+    },
+    last_update: new Date().toISOString()
+  };
 
   return {
     statusCode: 200,
-    headers: { "Content-Type": "text/html" },
-    body: html
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data, null, 2)
   };
 };
