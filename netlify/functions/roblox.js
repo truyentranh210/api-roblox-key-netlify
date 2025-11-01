@@ -1,6 +1,6 @@
 // netlify/functions/roblox.js
 // GET /roblox?username=someName
-// Uses public Roblox endpoints. Node 18+ (global fetch available).
+// Trả thông tin chi tiết + trang phục đang mặc
 
 async function fetchJson(url, opts) {
   const r = await fetch(url, opts);
@@ -16,53 +16,52 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 1) Resolve username -> userId using bulk endpoint
+    // 1️⃣ Lấy userId từ username
+    let userId = null, usernameResolved = null, displayName = null;
     const usersResp = await fetch("https://users.roblox.com/v1/usernames/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ usernames: [username] })
     });
 
-    if (!usersResp.ok) {
-      // fallback to legacy endpoint
-      const f = await fetchJson(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)}`);
-      if (!f.ok) return { statusCode: 404, body: JSON.stringify({ error: "User not found" }) };
-      const u = f.json;
-      if (!u || !u.Id) return { statusCode: 404, body: JSON.stringify({ error: "User not found" }) };
-      userId = u.Id;
-      usernameResolved = u.Username;
-    } else {
+    if (usersResp.ok) {
       const data = await usersResp.json();
-      if (!data || !data.data || data.data.length === 0) {
-        return { statusCode: 404, body: JSON.stringify({ error: "User not found" }) };
+      if (data && data.data && data.data.length > 0) {
+        const u = data.data[0];
+        userId = u.id;
+        usernameResolved = u.name;
+        displayName = u.displayName || "";
       }
-      const u = data.data[0];
-      var userId = u.id;
-      var usernameResolved = u.name || u.username;
-      var displayName = u.displayName || "";
     }
 
-    // 2) Profile details
+    if (!userId) {
+      const fallback = await fetchJson(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)}`);
+      if (!fallback.ok || !fallback.json.Id)
+        return { statusCode: 404, body: JSON.stringify({ error: "User not found" }) };
+      userId = fallback.json.Id;
+      usernameResolved = fallback.json.Username;
+    }
+
+    // 2️⃣ Lấy thông tin hồ sơ cơ bản
     const profile = await fetchJson(`https://users.roblox.com/v1/users/${userId}`);
-    let created = null, description = "";
-    if (profile.ok) {
-      created = profile.json.created || null;
-      description = profile.json.description || "";
-    }
+    const created = profile.ok ? profile.json.created : null;
+    const description = profile.ok ? profile.json.description || "" : "";
 
-    // 3) friends count
+    // 3️⃣ Friends & followers
     const friendsResp = await fetchJson(`https://friends.roblox.com/v1/users/${userId}/friends/count`);
-    const friends = friendsResp.ok ? friendsResp.json.count : null;
-
-    // 4) followers count
     const followersResp = await fetchJson(`https://friends.roblox.com/v1/users/${userId}/followers/count`);
+    const friends = friendsResp.ok ? friendsResp.json.count : null;
     const followers = followersResp.ok ? followersResp.json.count : null;
 
-    // 5) groups
+    // 4️⃣ Groups
     const groupsResp = await fetchJson(`https://groups.roblox.com/v2/users/${userId}/groups/roles`);
-    const groupsData = groupsResp.ok ? (groupsResp.json.data || []) : [];
+    const groupsData = groupsResp.ok ? groupsResp.json.data || [] : [];
 
-    // 6) Build result (match screenshot fields)
+    // 5️⃣ Trang phục đang mặc (Currently Wearing)
+    const wearResp = await fetchJson(`https://avatar.roblox.com/v1/users/${userId}/currently-wearing`);
+    const wearing = wearResp.ok ? wearResp.json.assetIds || [] : [];
+
+    // 6️⃣ Trả kết quả
     const out = {
       Name: displayName || usernameResolved,
       Username: usernameResolved,
@@ -79,7 +78,9 @@ exports.handler = async (event) => {
         id: g.group?.id || null,
         name: g.group?.name || null,
         role: g.role?.name || null
-      }))
+      })),
+      WearingAssets: wearing,
+      WearingCount: wearing.length
     };
 
     return {
