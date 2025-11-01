@@ -4,7 +4,7 @@
 exports.handler = async () => {
   const data = {
     name: "Roblox Info API",
-    author: "Bạn",
+    author: "ZheeDevVn",
     version: "v1.0.0",
     description: "API hiển thị thông tin người chơi Roblox và sinh key 24h. Triển khai trên Netlify.",
     endpoints: [
