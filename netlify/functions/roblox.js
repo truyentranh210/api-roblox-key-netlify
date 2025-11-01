@@ -1,6 +1,6 @@
 // netlify/functions/roblox.js
 // GET /roblox?username=someName
-// Trả thông tin chi tiết + trang phục đang mặc
+// Trả về thông tin user + trang phục đang mặc (chi tiết)
 
 async function fetchJson(url, opts) {
   const r = await fetch(url, opts);
@@ -16,7 +16,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 1️⃣ Lấy userId từ username
+    // 1️⃣ Lấy userId
     let userId = null, usernameResolved = null, displayName = null;
     const usersResp = await fetch("https://users.roblox.com/v1/usernames/users", {
       method: "POST",
@@ -42,26 +42,43 @@ exports.handler = async (event) => {
       usernameResolved = fallback.json.Username;
     }
 
-    // 2️⃣ Lấy thông tin hồ sơ cơ bản
+    // 2️⃣ Thông tin cơ bản
     const profile = await fetchJson(`https://users.roblox.com/v1/users/${userId}`);
     const created = profile.ok ? profile.json.created : null;
     const description = profile.ok ? profile.json.description || "" : "";
 
-    // 3️⃣ Friends & followers
+    // 3️⃣ Bạn bè / Theo dõi
     const friendsResp = await fetchJson(`https://friends.roblox.com/v1/users/${userId}/friends/count`);
     const followersResp = await fetchJson(`https://friends.roblox.com/v1/users/${userId}/followers/count`);
     const friends = friendsResp.ok ? friendsResp.json.count : null;
     const followers = followersResp.ok ? followersResp.json.count : null;
 
-    // 4️⃣ Groups
+    // 4️⃣ Nhóm
     const groupsResp = await fetchJson(`https://groups.roblox.com/v2/users/${userId}/groups/roles`);
     const groupsData = groupsResp.ok ? groupsResp.json.data || [] : [];
 
-    // 5️⃣ Trang phục đang mặc (Currently Wearing)
+    // 5️⃣ Trang phục đang mặc
     const wearResp = await fetchJson(`https://avatar.roblox.com/v1/users/${userId}/currently-wearing`);
-    const wearing = wearResp.ok ? wearResp.json.assetIds || [] : [];
+    let wearingAssets = [];
+    if (wearResp.ok && wearResp.json.assetIds && wearResp.json.assetIds.length > 0) {
+      const ids = wearResp.json.assetIds;
+      const thumbUrl = `https://thumbnails.roblox.com/v1/assets?assetIds=${ids.join(",")}&size=150x150&format=Png&isCircular=false`;
+      const thumbs = await fetchJson(thumbUrl);
 
-    // 6️⃣ Trả kết quả
+      // lấy chi tiết từng item
+      if (thumbs.ok) {
+        wearingAssets = thumbs.json.data.map((item, i) => ({
+          assetId: ids[i],
+          name: item.name || `Asset ${ids[i]}`,
+          type: item.assetType || "Unknown",
+          imageUrl: item.imageUrl || null
+        }));
+      } else {
+        wearingAssets = ids.map(id => ({ assetId: id }));
+      }
+    }
+
+    // 6️⃣ Kết quả
     const out = {
       Name: displayName || usernameResolved,
       Username: usernameResolved,
@@ -79,8 +96,8 @@ exports.handler = async (event) => {
         name: g.group?.name || null,
         role: g.role?.name || null
       })),
-      WearingAssets: wearing,
-      WearingCount: wearing.length
+      Wearing: wearingAssets,
+      WearingCount: wearingAssets.length
     };
 
     return {
